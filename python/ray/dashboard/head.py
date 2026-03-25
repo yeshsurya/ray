@@ -456,12 +456,22 @@ class DashboardHead:
         # This could be done better in the future, including
         # removing the polling on the Ray side, by communicating the
         # server address to Ray via stdin / stdout or a pipe.
-        self.gcs_client.internal_kv_put(
-            ray_constants.DASHBOARD_ADDRESS.encode(),
-            build_address(dashboard_http_host, http_port).encode(),
-            True,
-            namespace=ray_constants.KV_NAMESPACE_DASHBOARD,
-        )
+        dashboard_address = build_address(dashboard_http_host, http_port)
+        try:
+            self.gcs_client.internal_kv_put(
+                ray_constants.DASHBOARD_ADDRESS.encode(),
+                dashboard_address.encode(),
+                True,
+                namespace=ray_constants.KV_NAMESPACE_DASHBOARD,
+            )
+            logger.info(
+                "Dashboard address %s written to internal KV.", dashboard_address
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write dashboard address to internal KV."
+            )
+            raise
 
         concurrent_tasks = [
             self._gcs_check_alive(),
